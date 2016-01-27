@@ -1,21 +1,19 @@
 package com.abc;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
 import static java.lang.Math.abs;
 
-public class Customer {
-    private String name;
+public class Customer extends Person {
+
+    public static final String NEW_LINE_CHAR = "\n";
     private List<Account> accounts;
 
     public Customer(String name) {
-        this.name = name;
-        this.accounts = new ArrayList<Account>();
-    }
-
-    public String getName() {
-        return name;
+        super(name);
+        this.accounts = new ArrayList<>();
     }
 
     public Customer openAccount(Account account) {
@@ -27,52 +25,63 @@ public class Customer {
         return accounts.size();
     }
 
-    public double totalInterestEarned() {
-        double total = 0;
+    public BigDecimal totalInterestEarned() {
+        BigDecimal total = BigDecimal.ZERO;
         for (Account a : accounts)
-            total += a.interestEarned();
+            total = total.add(a.interestEarned());
         return total;
     }
 
     public String getStatement() {
-        String statement = null;
-        statement = "Statement for " + name + "\n";
-        double total = 0.0;
+        StringBuilder stringBuilder = new StringBuilder("Statement for ");
+        stringBuilder.append(getName()).append(NEW_LINE_CHAR);
+        BigDecimal total = BigDecimal.ZERO;
         for (Account a : accounts) {
-            statement += "\n" + statementForAccount(a) + "\n";
-            total += a.sumTransactions();
+            stringBuilder.append(NEW_LINE_CHAR).append(statementForAccount(a)).append(NEW_LINE_CHAR);
+            total = total.add(a.sumTransactions());
         }
-        statement += "\nTotal In All Accounts " + toDollars(total);
-        return statement;
+        stringBuilder.append("\nTotal In All Accounts ").append(toDollars(total));
+        return stringBuilder.toString();
     }
 
     private String statementForAccount(Account a) {
-        String s = "";
+        StringBuilder stringBuilder = new StringBuilder("");
 
        //Translate to pretty account type
         switch(a.getAccountType()){
-            case Account.CHECKING:
-                s += "Checking Account\n";
+            case CHECKING:
+                stringBuilder.append("Checking Account\n");
                 break;
-            case Account.SAVINGS:
-                s += "Savings Account\n";
+            case SAVINGS:
+                stringBuilder.append("Savings Account\n");
                 break;
-            case Account.MAXI_SAVINGS:
-                s += "Maxi Savings Account\n";
+            case MAXI_SAVINGS:
+                stringBuilder.append("Maxi Savings Account\n");
                 break;
+            default:
+                throw new RuntimeException("Unknown Account type encountered!");
         }
 
         //Now total up all the transactions
-        double total = 0.0;
-        for (Transaction t : a.transactions) {
-            s += "  " + (t.amount < 0 ? "withdrawal" : "deposit") + " " + toDollars(t.amount) + "\n";
-            total += t.amount;
+        BigDecimal total = BigDecimal.ZERO;
+        for (Transaction t : a.getTransactions()) {
+            stringBuilder.append("  ").append((t.amount.compareTo(BigDecimal.ZERO) < 0 ? "withdrawal" : "deposit"))
+                    .append(" ").append(toDollars(t.amount)).append(NEW_LINE_CHAR);
+            total = total.add(t.amount);
         }
-        s += "Total " + toDollars(total);
-        return s;
+        stringBuilder.append("Total ").append(toDollars(total));
+        return stringBuilder.toString();
     }
 
-    private String toDollars(double d){
-        return String.format("$%,.2f", abs(d));
+    private String toDollars(BigDecimal d){
+        return String.format("$%,.2f", abs(d.doubleValue()));
+    }
+
+    public void transferBetweenAccounts(Account fromAccount, Account toAccount, BigDecimal amount) {
+        if(fromAccount.sumTransactions().compareTo(amount) < 0){
+            throw new RuntimeException("Insufficient funds available to transfer between accounts");
+        }
+        fromAccount.withdraw(amount);
+        toAccount.deposit(amount);
     }
 }

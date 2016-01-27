@@ -1,73 +1,79 @@
 package com.abc;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 public class Account {
 
-    public static final int CHECKING = 0;
-    public static final int SAVINGS = 1;
-    public static final int MAXI_SAVINGS = 2;
+    private AccountType accountType;
+    private List<Transaction> transactions;
+    private Long accountNumber;
+    public static final BigDecimal NUM_OF_DAYS_PER_YEAR= new BigDecimal("365");
+    public static final Integer ROUNDING_SCALE =5;
+    public static final Integer CONSTANT = 1000 * 60 * 60 * 24;
 
-    private final int accountType;
-    public List<Transaction> transactions;
-
-    public Account(int accountType) {
-        this.accountType = accountType;
+    public Account() {
         this.transactions = new ArrayList<Transaction>();
+        Random random = new Random(0L);
+        setAccountNumber(random.nextLong());
     }
 
-    public void deposit(double amount) {
-        if (amount <= 0) {
-            throw new IllegalArgumentException("amount must be greater than zero");
+    public void deposit(BigDecimal amount) {
+        if (null == amount || BigDecimal.ZERO.compareTo(amount) >= 0) {
+            throw new IllegalArgumentException("Amount must be greater than zero");
         } else {
             transactions.add(new Transaction(amount));
         }
     }
 
-public void withdraw(double amount) {
-    if (amount <= 0) {
-        throw new IllegalArgumentException("amount must be greater than zero");
-    } else {
-        transactions.add(new Transaction(-amount));
-    }
-}
-
-    public double interestEarned() {
-        double amount = sumTransactions();
-        switch(accountType){
-            case SAVINGS:
-                if (amount <= 1000)
-                    return amount * 0.001;
-                else
-                    return 1 + (amount-1000) * 0.002;
-//            case SUPER_SAVINGS:
-//                if (amount <= 4000)
-//                    return 20;
-            case MAXI_SAVINGS:
-                if (amount <= 1000)
-                    return amount * 0.02;
-                if (amount <= 2000)
-                    return 20 + (amount-1000) * 0.05;
-                return 70 + (amount-2000) * 0.1;
-            default:
-                return amount * 0.001;
+    public void withdraw(BigDecimal amount) {
+        if (null == amount || BigDecimal.ZERO.compareTo(amount) >= 0) {
+            throw new IllegalArgumentException("Amount must be greater than zero");
+        } else {
+            BigDecimal currAccountBalance = sumTransactions();
+            if (currAccountBalance.compareTo(amount) >= 0) {
+                transactions.add(new Transaction(amount.negate()));
+            } else {
+                throw new RuntimeException("Unable to withdraw from account due to insufficient funds!");
+            }
         }
     }
 
-    public double sumTransactions() {
-       return checkIfTransactionsExist(true);
+    public BigDecimal interestEarned() {
+        throw new RuntimeException("Unable to work out interest earned as ambiguous account type specified!");
     }
 
-    private double checkIfTransactionsExist(boolean checkAll) {
-        double amount = 0.0;
-        for (Transaction t: transactions)
-            amount += t.amount;
+    public BigDecimal sumTransactions() {
+       return checkIfTransactionsExist();
+    }
+
+    private BigDecimal checkIfTransactionsExist() {
+        BigDecimal amount = BigDecimal.ZERO;
+        for (Transaction t: transactions) {
+            amount = amount.add(t.amount);
+        }
         return amount;
     }
 
-    public int getAccountType() {
+    public AccountType getAccountType() {
         return accountType;
     }
 
+    public void setAccountType(AccountType accountType) {
+        this.accountType = accountType;
+    }
+
+    public List<Transaction> getTransactions() {
+        return transactions;
+    }
+
+    public Long getAccountNumber() {
+        return accountNumber;
+    }
+
+    public void setAccountNumber(Long accountNumber) {
+        this.accountNumber = accountNumber;
+    }
 }
